@@ -1,0 +1,40 @@
+          Main (PC = 0 … 19)
+00  SET   R20, 0x0020    ; base = 0x20
+01  SET   R21, 8         ; length = 8 elements
+
+02  SET   R1,  5         ; array[0]
+03  SET   R2,  10        ; array[1]
+04  SET   R3,  15        ; array[2]
+05  SET   R4,  20        ; array[3]
+06  SET   R5,  25        ; array[4]
+07  SET   R6,  30        ; array[5]
+08  SET   R7,  35        ; array[6]
+09  SET   R8,  40        ; array[7]
+
+a  SW    R1, 0(R20)     ; store  5 @0x20
+b  SW    R2, 1(R20)     ; store a @0x21
+c  SW    R3, 2(R20)     ; store f @0x22
+d  SW    R4, 3(R20)     ; store 14 @0x23
+e  SW    R5, 4(R20)     ; store 19 @0x24
+f  SW    R6, 5(R20)     ; store 1e @0x25
+10  SW   R7, 6(R20)     ; store 23 @0x26
+11  SW   R8, 7(R20)     ; store 28 @0x27
+
+12  JALR  R30, R0, sum    ; call sum_array → PC = 20, R30 = return addr (19)
+13  HALT: BEQ R0, R0, 0 ; infinite loop
+
+          sum_array (PC = 20 … 29)
+ 14 sum:
+14  SET   R22, 0         ; sum = 0
+15  SET   R23, 0         ; i = 0
+
+loop:
+16  BEQ   R23, R21, +6   ; if i==len → PC=22+7=29 (exit)
+17  LW    R24, 0(R20)    ; load array[i]
+18  ADD   R22, R22, R24  ; sum += array[i]
+19  ADDI  R20, R20, 1    ; base++
+1a  ADDI  R23, R23, 1    ; i++
+1b  JALR  R0, R0, 22     ; jump back to PC=22 (the BEQ)
+
+
+1c  JALR  R0, R30, 0     ; return → PC = R30 = 19 (HALT)

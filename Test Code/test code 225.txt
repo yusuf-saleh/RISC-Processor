@@ -1,0 +1,83 @@
+SET   R1, 0x3000        ; R1 = 0x00003000
+SSET  R1, 0x4000        ; R1 = 0x00004000   (SET sets lower 16 bits to 0x3000, SSET overrides lower 16 bits to 0x4000)
+SET   R2, 9             ; R2 = 0x00000009
+SET   R3, 6             ; R3 = 0x00000006
+
+# === Arithmetic & Logic (R-type) ===
+ADD   R4,  R2, R3       ; R4 = 9 + 6          = 0x0000000F (15)
+SUB   R5,  R4, R3       ; R5 = 15 - 6         = 0x00000009 (9)
+XOR   R6,  R4, R5       ; R6 = 15 ^ 9         = 0x00000006 (15 is 1111, 9 is 1001, XOR = 0110 = 6)
+OR    R7,  R6, R2       ; R7 = 6 | 9          = 0x0000000F (0110 | 1001 = 1111 = 15)
+AND   R8,  R7, R5       ; R8 = 15 & 9         = 0x00000009 (1111 & 1001 = 1001 = 9)
+NOR   R9,  R2, R3       ; R9 = ~(9 | 6)       = 0xFFFFFFF0 (~(1001 | 0110) = ~(1111) = ~15 = -16 in 32-bit)
+MUL   R10, R2, R3       ; R10 = 9 * 6         = 0x00000036 (54)
+SEQ   R11, R10, R6      ; R11 = (54 == 6) ? 1 : 0 = 0x00000000 (false)
+SLT   R12, R3, R2       ; R12 = (6 < 9) ? 1 : 0 = 0x00000001 (true)
+SLTU  R13, R3, R2       ; R13 = (unsigned 6 < 9) ? 1 : 0 = 0x00000001 (true)
+
+# === Shifts & Rotates (R-type) ===
+SLL   R14, R3, R2       ; R14 = 6 << 9        = 0x00000C00 (6 = 00000110, shifted left 9 = 11000000000 = 3072)
+SRL   R15, R14, R2      ; R15 = 3072 >>u 9    = 0x00000006 (3072 = 11000000000, right 9 = 00000000110 = 6)
+SRA   R16, R14, R2      ; R16 = 3072 >>s 9    = 0x00000006 (positive, so same as SRL = 6)
+ROR   R17, R14, R2      ; R17 = rotate right 3072 by 9 = 0x00000006 
+                        ; (3072 = 000011000000000, rotate right 9 = 000000000000110 = 6)
+
+# === Immediate & Shift-Imm (I-type) ===
+SLLI  R18, R17, 3       ; R18 = 6 << 3        = 0x00000030 (6 = 110, left 3 = 110000 = 48)
+SRLI  R19, R18, 2       ; R19 = 48 >>u 2      = 0x0000000C (48 = 110000, right 2 = 1100 = 12)
+SRAI  R20, R18, 2       ; R20 = 48 >>s 2      = 0x0000000C (positive, so 12)
+RORI  R21, R18, 6       ; R21 = rotate right 48 by 6 = 0x00000003
+                        ; (48 = 00000000...00110000, right 6 = 000000...00000011 = 3)
+ADDI  R22, R21, 150     ; R22 = 3 + 150       = 0x00000099 (153)
+SLTI  R23, R22, 200     ; R23 = (153 < 200) ? 1 : 0 = 0x00000001 (true)
+SLTIU R24, R22, 200     ; R24 = (unsigned 153 < 200) ? 1 : 0 = 0x00000001 (true)
+SEQI  R25, R23, 1       ; R25 = (1 == 1) ? 1 : 0 = 0x00000001 (true)
+XORI  R26, R25, 0xCC    ; R26 = 1 ^ 0xCC      = 0x000000CD 
+ORI   R27, R26, 0x33    ; R27 = 205 | 0x33    = 0x000000FF 
+ANDI  R28, R27, 0xE0    ; R28 = 255 & 0xE0    = 0x000000E0 
+NORI  R29, R28, 0x55    ; R29 = ~(224 | 0x55) = 0xFFFFFF0A 
+                        ; (224 = 11100000, 0x55 = 01010101, 11110101 = ~0xF5 = -246 in 32-bit)
+SET   R30, -1           ; R30 = 0xFFFFFFFF    (full 32-bit -1)
+SSET  R31, 0x01FF       ; R31 = 0x000001FF    (lower 16 bits set to 0x01FF = 511)
+
+# === Memory operations ===
+SW    R4,  0(R1)        ; MEM[0x4000] = 15    (store R4 at R1 + 0)
+LW    R8,  0(R1)        ; R8 = 15             (load from 0x4000)
+SW    R5,  4(R1)        ; MEM[0x4004] = 9     (store R5 at R1 + 4)
+LW    R9,  4(R1)        ; R9 = 9              (load from 0x4004)
+
+# === Branch tests (SB-type) ===
+BEQ   R8,  R4, +2       ; R8 == R4 (15 == 15), skip next instruction
+ADDI  R10, R0, 123      ; (skipped)
+ADDI  R10, R0, 456      ; R10 = 456           (executed)
+
+BNE   R9,  R5, +2       ; R9 == R5 (9 == 9), fall through (no skip)
+ADDI  R11, R0, 789      ; R11 = 789           (executed)
+ADDI  R11, R0, 234      ; R11 = 234           (executed, overwrites R11)
+
+BLT   R3,  R2, +2       ; 6 < 9, true, skip next
+ADDI  R12, R0, 345      ; (skipped)
+ADDI  R12, R0, 678      ; R12 = 678           (executed)
+
+BGE   R3,  R2, +2       ; 6 >= 9, false, fall through
+ADDI  R13, R0, 901      ; R13 = 901           (executed)
+ADDI  R13, R0, 432      ; R13 = 432           (executed, overwrites R13)
+
+BLTU  R3,  R2, +2       ; unsigned 6 < 9, true, skip next
+ADDI  R14, R0, 567      ; (skipped)
+ADDI  R14, R0, 890      ; R14 = 890           (executed)
+
+BGEU  R3,  R2, +2       ; unsigned 6 >= 9, false, fall through
+ADDI  R15, R0, 321      ; R15 = 321           (executed)
+ADDI  R15, R0, 654      ; R15 = 654           (executed, overwrites R15)
+
+# === Jump & Link Register (JALR) ===
+JALR  R1, R2, 8         ; R1 = PC + 4, jump to R2 + 8 (0x9 + 8 = 0x11), but subsequent code executed for testing
+
+ADD   R4,  R1, R2       ; R4 = R1 + 9         (R1 updated by JALR, value depends on PC)
+SUB   R5,  R3, R1       ; R5 = 6 - R1         (result depends on R1)
+AND   R6,  R1, R3       ; R6 = R1 & 6         (depends on R1)
+OR    R7,  R2, R3       ; R7 = 9 | 6          = 0x0000000F (15)
+XOR   R8,  R1, R2       ; R8 = R1 ^ 9         (depends on R1)
+SLT   R9,  R1, R2       ; R9 = (R1 < 9) ? 1 : 0 (depends on R1)
+SEQ   R10, R2, R2       ; R10 = (9 == 9) ? 1 : 0 = 0x00000001 (true)
